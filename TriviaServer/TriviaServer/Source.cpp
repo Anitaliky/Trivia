@@ -18,7 +18,6 @@ void main()
 	try
 	{
 		TriviaServer ts;
-		ts.createSocket();
 		std::cout << "Waiting for clients to connect..." << std::endl;
 		ts.serve(result);
 	}

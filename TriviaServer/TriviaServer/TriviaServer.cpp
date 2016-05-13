@@ -1,31 +1,20 @@
 #include "TriviaServer.h"
+#include "SafeQueue.h"
 
 TriviaServer::TriviaServer()
 {
 	//TODO - database constructor
 	_roomIdSequence = 0;
-	_locker = std::unique_lock<std::mutex>(_mtxRecievedMessages, std::defer_lock);
+	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (s == INVALID_SOCKET)
+		throw std::exception("socket failed");
+	_socket = s;
 }
 
 TriviaServer::~TriviaServer()
 {
-	for (std::map<int, Room*>::iterator it = _roomsList.begin(); it != _roomsList.end(); ++it)
-		_roomsList.erase(it);
-
-	for (std::map<SOCKET, User*>::iterator it = _connectedUsers.begin(); it != _connectedUsers.end(); ++it)
-		_connectedUsers.erase(it);
-
 	if (closesocket(_socket) == SOCKET_ERROR)
 		throw std::exception("close socket failed");
-}
-
-void TriviaServer::createSocket()
-{
-	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (s == INVALID_SOCKET)
-		throw std::exception("socket failed");
-	else
-		_socket = s;
 }
 
 void TriviaServer::serve(struct addrinfo* a)
@@ -66,7 +55,7 @@ void TriviaServer::Accept()
 		throw std::exception("socket accept failed");
 	}
 	std::cout << "Client connected!" << std::endl;
-	User* newUser = new User(, clientSocket);
+	User newUser("", clientSocket);
 	//newUser->runThread();
 }
 
@@ -76,25 +65,24 @@ void TriviaServer::clientHandler(SOCKET client_socket)
 
 }
 
-Room* TriviaServer::getRoomById(int id)
+Room& TriviaServer::getRoomById(int id)
 {
 	return _roomsList.at(id);
 }
 
-User* TriviaServer::getUserByName(std::string name)
+User& TriviaServer::getUserByName(std::string name)
 {
 	for (auto& x : _connectedUsers)
-		if (x.second->getUsername() == name)
+		if (x.second.getUsername() == name)
 			return x.second;
-	return nullptr;
 }
 
-User* TriviaServer::getUserBySocket(SOCKET client_socket)
+User& TriviaServer::getUserBySocket(SOCKET client_socket)
 {
 	return _connectedUsers.at(client_socket);
 }
 
-void TriviaServer::safeDeleteUser(RecievedMessage* message)
+void TriviaServer::safeDeleteUser(RecievedMessage& message)
 {
 
 }
@@ -102,98 +90,132 @@ void TriviaServer::safeDeleteUser(RecievedMessage* message)
 //thread's function
 void TriviaServer::handleRecievedMessages()
 {
-
+	RecievedMessage message = _queRcvMessages.dequeue();
+	switch (message.getMessageCode())
+	{
+	case (int)ClientMessageCode::SIGN_IN:
+		handleSignin(message);
+		break;
+	case (int)ClientMessageCode::SIGN_OUT:
+		handleSignout(message);
+		break;
+	case (int)ClientMessageCode::SIGN_UP:
+		handleSignup(message);
+		break;
+	case (int)ClientMessageCode::LEAVE_GAME:
+		handleLeaveGame(message);
+		break;
+	case (int)ClientMessageCode::START_GAME:
+		handleStartGame(message);
+		break;
+	case (int)ClientMessageCode::ANSWER:
+		handlePlayerAnswer(message);
+		break;
+	case (int)ClientMessageCode::CREATE_ROOM:
+		handleCreateRoom(message);
+		break;
+	case (int)ClientMessageCode::CLOSE_ROOM:
+		handleCloseRoom(message);
+		break;
+	case (int)ClientMessageCode::JOIN_ROOM:
+		handleJoinRoom(message);
+		break;
+	case (int)ClientMessageCode::LEAVE_ROOM:
+		handleLeaveRoom(message);
+		break;
+	case (int)ClientMessageCode::USERS_ROOM_LIST:
+		handleGetUsersInRoom(message);
+		break;
+	case (int)ClientMessageCode::ROOM_LIST:
+		handleGetRooms(message);
+		break;
+	case (int)ClientMessageCode::BEST_SCORES:
+		handleGetBestScores(message);
+		break;
+	case (int)ClientMessageCode::PERSONAL_STATUS:
+		handleGetPersonalStatus(message);
+		break;
+	default:
+		break;
+	}
 }
 
-void TriviaServer::lockRecievedMessages()
-{
-	_locker.lock();
-	if (_queRcvMessages.size() == 0)
-		_condRecv.wait(_locker);
-	_locker.unlock();
-}
-
-void TriviaServer::unlockRecievedMessages()
-{
-	_condRecv.notify_all();
-}
-
-User* TriviaServer::handleSignin(RecievedMessage* message)				//message No. 200
-{
-
-}
-
-void TriviaServer::handleSignout(RecievedMessage* message)				//message No. 201
-{
-
-}
-
-bool TriviaServer::handleSignup(RecievedMessage* message)				//message No. 203
-{
-
-}
-
-void TriviaServer::handleLeaveGame(RecievedMessage* message)			//message No. 222
-{
-
-}
-
-void TriviaServer::handleStartGame(RecievedMessage* message)			//message No. 217
-{
-
-}
-
-void TriviaServer::handlePlayerAnswer(RecievedMessage* message)			//message No. 219
-{
-
-}
-
-bool TriviaServer::handleCreateRoom(RecievedMessage* message)			//message No. 213
-{
-
-}
-
-bool TriviaServer::handleCloseRoom(RecievedMessage* message)			//message No. 215
-{
-
-}
-
-bool TriviaServer::handleJoinRoom(RecievedMessage* message)				//message No. 209
+User& TriviaServer::handleSignin(RecievedMessage& message)				//message No. 200
 {
 
 }
 
-bool TriviaServer::handleLeaveRoom(RecievedMessage* message)			//message No. 211
+void TriviaServer::handleSignout(RecievedMessage& message)				//message No. 201
 {
 
 }
 
-void TriviaServer::handleGetUsersInRoom(RecievedMessage* message)		//message No. 207
+bool TriviaServer::handleSignup(RecievedMessage& message)				//message No. 203
 {
 
 }
 
-void TriviaServer::handleGetRooms(RecievedMessage* message)			//message No. 205
+void TriviaServer::handleLeaveGame(RecievedMessage& message)			//message No. 222
 {
 
 }
 
-void TriviaServer::handleGetBestScores(RecievedMessage* message)		//message No. 223
+void TriviaServer::handleStartGame(RecievedMessage& message)			//message No. 217
 {
 
 }
 
-void TriviaServer::handleGetPersonalStatus(RecievedMessage* message)	//message No. 225
+void TriviaServer::handlePlayerAnswer(RecievedMessage& message)			//message No. 219
 {
 
 }
 
-void TriviaServer::addRecievedMessage(RecievedMessage* message)		//message No. 225
+bool TriviaServer::handleCreateRoom(RecievedMessage& message)			//message No. 213
 {
 
 }
 
-void TriviaServer::buildRecieveMessage(RecievedMessage* message)		//message No. 225
+bool TriviaServer::handleCloseRoom(RecievedMessage& message)			//message No. 215
+{
+
+}
+
+bool TriviaServer::handleJoinRoom(RecievedMessage& message)				//message No. 209
+{
+
+}
+
+bool TriviaServer::handleLeaveRoom(RecievedMessage& message)			//message No. 211
+{
+
+}
+
+void TriviaServer::handleGetUsersInRoom(RecievedMessage& message)		//message No. 207
+{
+
+}
+
+void TriviaServer::handleGetRooms(RecievedMessage& message)			//message No. 205
+{
+
+}
+
+void TriviaServer::handleGetBestScores(RecievedMessage& message)		//message No. 223
+{
+
+}
+
+void TriviaServer::handleGetPersonalStatus(RecievedMessage& message)	//message No. 225
+{
+
+}
+
+void TriviaServer::addRecievedMessage(RecievedMessage& message)		//message No. 225
+{
+
+}
+
+void TriviaServer::buildRecieveMessage(RecievedMessage& message)		//message No. 225
 {
 
 }

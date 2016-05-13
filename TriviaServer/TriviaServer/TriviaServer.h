@@ -3,13 +3,10 @@
 #pragma comment (lib,"ws2_32.lib")
 #include <iostream>
 #include <map>
-#include <deque>
-#include <mutex>
 #include <thread>
 #include <WinSock2.h>
 #include <Windows.h>
 #include <ws2tcpip.h>
-#include <condition_variable>
 #include "Helper.h"
 #include "Validator.h"
 #include "Protocol.h"
@@ -18,50 +15,47 @@
 #include "RecievedMessage.h"
 #include "Database.h"
 #include "Game.h"
+#include "SafeQueue.h"
 
 class TriviaServer
 {
 public:
-	TriviaServer();
+	TriviaServer() throw(...);
 	~TriviaServer() throw(...);
-	void createSocket() throw(...);
 	void serve(struct addrinfo*);
 	void bindAndListen(struct addrinfo*) throw(...);
 	void Accept() throw(...);
 	void clientHandler(SOCKET);
-	Room* getRoomById(int);
-	User* getUserByName(std::string);
-	User* getUserBySocket(SOCKET);
-	void safeDeleteUser(RecievedMessage*);
+	Room& getRoomById(int);
+	User& getUserByName(std::string);
+	User& getUserBySocket(SOCKET);
+	void safeDeleteUser(RecievedMessage&);
 	void handleRecievedMessages();
 	void lockRecievedMessages();
 	void unlockRecievedMessages();
-	User* handleSignin(RecievedMessage*);			//message No. 200
-	void handleSignout(RecievedMessage*);			//message No. 201
-	bool handleSignup(RecievedMessage*);			//message No. 203
-	void handleLeaveGame(RecievedMessage*);			//message No. 222
-	void handleStartGame(RecievedMessage*);			//message No. 217
-	void handlePlayerAnswer(RecievedMessage*);		//message No. 219
-	bool handleCreateRoom(RecievedMessage*);		//message No. 213
-	bool handleCloseRoom(RecievedMessage*);			//message No. 215
-	bool handleJoinRoom(RecievedMessage*);			//message No. 209
-	bool handleLeaveRoom(RecievedMessage*);			//message No. 211
-	void handleGetUsersInRoom(RecievedMessage*);	//message No. 207
-	void handleGetRooms(RecievedMessage*);			//message No. 205
-	void handleGetBestScores(RecievedMessage*);		//message No. 223
-	void handleGetPersonalStatus(RecievedMessage*);	//message No. 225
-	void addRecievedMessage(RecievedMessage*);		//message No. 225
-	void buildRecieveMessage(RecievedMessage*);		//message No. 225
+	User& handleSignin(RecievedMessage&);			//message No. 200
+	void handleSignout(RecievedMessage&);			//message No. 201
+	bool handleSignup(RecievedMessage&);			//message No. 203
+	void handleLeaveGame(RecievedMessage&);			//message No. 222
+	void handleStartGame(RecievedMessage&);			//message No. 217
+	void handlePlayerAnswer(RecievedMessage&);		//message No. 219
+	bool handleCreateRoom(RecievedMessage&);		//message No. 213
+	bool handleCloseRoom(RecievedMessage&);			//message No. 215
+	bool handleJoinRoom(RecievedMessage&);			//message No. 209
+	bool handleLeaveRoom(RecievedMessage&);			//message No. 211
+	void handleGetUsersInRoom(RecievedMessage&);	//message No. 207
+	void handleGetRooms(RecievedMessage&);			//message No. 205
+	void handleGetBestScores(RecievedMessage&);		//message No. 223
+	void handleGetPersonalStatus(RecievedMessage&);	//message No. 225
+	void addRecievedMessage(RecievedMessage&);		//message No. 225
+	void buildRecieveMessage(RecievedMessage&);		//message No. 225
 
 private:
 	SOCKET _socket;
-	std::map<SOCKET, User*> _connectedUsers;
+	std::map<SOCKET, User> _connectedUsers;
 	DataBase _db;
-	std::map<int, Room*> _roomsList;
-	std::mutex _mtxRecievedMessages;
-	std::unique_lock<std::mutex> _locker;
-	std::condition_variable _condRecv;
-	std::deque<RecievedMessage*> _queRcvMessages;
+	std::map<int, Room&> _roomsList;
+	SafeQueue<RecievedMessage&> _queRcvMessages;
 	static int _roomIdSequence;
 	void printException(std::exception);
 };
