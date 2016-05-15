@@ -2,32 +2,36 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <exception>
 #include "User.h"
 #include "DataBase.h"
 #include "Question.h"
-#include "DataBase.h"
+#include "Helper.h"
+#include "Protocol.h"
+
+class User;
 
 class Game
 {
 public:
-	Game(const std::vector<User*>& players, int questionsNo, DataBase& db);
+	Game(const std::vector<User&>&, int, DataBase&, int) throw(...);
 	~Game();
-	void sendQuestionToAllUsers();
 	void handleFinishGame();
 	void sendFirstQuestion();
 	bool handleNextTurn();
-	bool handleAnswerFromUser(User* user, int answerNo, int time);
-	bool leaveGame(User* currUser);
-	int getId();
+	bool handleAnswerFromUser(User&, int, int);
+	bool leaveGame(User&);
+	int getID();
 
 private:
-	std::vector<Question*> _questions;
-	std::vector<User*> _players;
+	std::vector<Question&> _questions;
+	std::vector<User&> _players;
 	int _questions_no;
 	int _currQuestionIndex;
 	DataBase& _db;
 	std::map<std::string, int> _results;
 	int _currentTurnAnswers;
+	int _id;
 
 	bool insertGameToDB();
 	void initQuestionsFromDB();
