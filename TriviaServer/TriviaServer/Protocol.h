@@ -1,6 +1,13 @@
-#define SUCCESS "0"
-#define FAIL "1"
 #define DEFAULT_PORT "8820"
+
+#define SUCCESS "0"
+#define FAIL1 "1"
+#define FAIL2 "2"
+#define FAIL3 "3"
+#define FAIL4 "4"
+
+#define CORRECT_ANSWER "1"
+#define INCORRECT_ANSWER "0"
 
 typedef enum class client_message_code : int
 {
