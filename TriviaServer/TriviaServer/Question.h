@@ -5,7 +5,7 @@
 class Question
 {
 public:
-	Question(int id, std::string question, std::string correctAnswer, std::string answer2, std::string answer3, std::string answer4);
+	Question(int, std::string, std::string, std::string, std::string, std::string);
 	std::string getQuestion();
 	std::string* getAnswers();
 	int getCorrectAnswerIndex();

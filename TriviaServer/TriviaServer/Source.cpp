@@ -1,5 +1,7 @@
-#include "Validator.h"
 #include "TriviaServer.h"
+
+
+void printException(std::exception e);
 
 void main()
 {

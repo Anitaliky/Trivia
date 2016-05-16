@@ -5,11 +5,14 @@
 #include "Game.h"
 #include "Protocol.h"
 
+class Room;
+class Game;
+
 class User
 {
 public:
 	User(std::string, SOCKET);
-	void send(std::string) throw(...);
+	void send(std::string);
 	std::string getUsername();
 	SOCKET getSocket();
 	Room* getRoom();

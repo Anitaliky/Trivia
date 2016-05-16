@@ -1,3 +1,5 @@
+#pragma once
+
 #define DEFAULT_PORT "8820"
 
 #define SUCCESS "0"

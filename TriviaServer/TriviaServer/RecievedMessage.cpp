@@ -4,15 +4,13 @@ RecievedMessage::RecievedMessage(SOCKET sock, int messageCode)
 {
 	_sock = sock;
 	_messageCode = messageCode;
-	_user = nullptr;
 }
 
 RecievedMessage::RecievedMessage(SOCKET sock, int messageCode, std::vector<std::string> values)
 {
 	_sock = sock;
 	_messageCode = messageCode;
-	_user = nullptr;
-	//TODO
+	_values = values;
 }
 
 SOCKET RecievedMessage::getSock()
@@ -20,14 +18,14 @@ SOCKET RecievedMessage::getSock()
 	return _sock;
 }
 
-User* RecievedMessage::getUser()
+int RecievedMessage::getUserId()
 {
-	return _user;
+	return _userId;
 }
 
-void RecievedMessage::setUser(User* user)
+void RecievedMessage::setUser(int user)
 {
-	_user = user;
+	_userId = user;
 }
 
 int RecievedMessage::getMessageCode()

@@ -16,7 +16,7 @@ bool Validator::isUsernameValid(std::string username)
 {
 	if (username != "")
 		if ((username.at(0) >= 'a' && username.at(0) <= 'z') || (username.at(0) >= 'A' && username.at(0) <= 'Z') &&
-			username.find_first_of(' ') == std::string::npos)
+		username.find_first_of(' ') == std::string::npos)
 			return true;
 	return false;
 }

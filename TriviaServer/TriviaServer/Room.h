@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 
+class User;
+
 class Room
 {
 public:
@@ -15,6 +17,7 @@ public:
 	std::string getUsersListMessage();
 	int getQuestionsNo();
 	int getId();
+	int getQuestionTime();
 	std::string getName();
 
 private:
@@ -25,8 +28,7 @@ private:
 	int _questionNo;
 	std::string _name;
 	int _id;
-	std::string getUsersAsString(std::vector<User*>, User*);
+
 	void sendMessage(User*, std::string);
 	void sendMessage(std::string);
-
 };

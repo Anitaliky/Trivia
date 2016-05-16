@@ -14,18 +14,18 @@ class User;
 class Game
 {
 public:
-	Game(const std::vector<User&>&, int, DataBase&, int) throw(...);
+	Game(const std::vector<User*>&, int, DataBase&, int) throw(...);
 	~Game();
 	void handleFinishGame();
 	void sendFirstQuestion();
 	bool handleNextTurn();
-	bool handleAnswerFromUser(User&, int, int);
-	bool leaveGame(User&);
+	bool handleAnswerFromUser(User*, int, int);
+	bool leaveGame(User*);
 	int getID();
 
 private:
-	std::vector<Question&> _questions;
-	std::vector<User&> _players;
+	std::vector<Question*> _questions;
+	std::vector<User*> _players;
 	int _questions_no;
 	int _currQuestionIndex;
 	DataBase& _db;

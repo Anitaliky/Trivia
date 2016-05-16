@@ -1,229 +1,105 @@
-#include "TriviaServer.h"
-#include "SafeQueue.h"
+#include "Room.h"
 
-TriviaServer::TriviaServer()
+Room::Room(int id, User* admin, std::string name, int maxUsers, int questionNo, int questionTime)
 {
-	//TODO - database constructor
-	_roomIdSequence = 0;
-	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (s == INVALID_SOCKET)
-		throw std::exception("socket failed");
-	_socket = s;
+	_id = id;
+	_admin = admin;
+	_name = name;
+	_maxUsers = maxUsers;
+	_questionNo = questionNo;
+	_questionTime = questionTime;
+	_users.push_back(admin);
 }
 
-TriviaServer::~TriviaServer()
+bool Room::joinRoom(User* user)
 {
-	if (closesocket(_socket) == SOCKET_ERROR)
-		throw std::exception("close socket failed");
-}
-
-void TriviaServer::serve(struct addrinfo* a)
-{
-	bindAndListen(a);
-	std::thread(&handleRecievedMessages, this).detach();
-	while (true)
+	std::string message = std::to_string((int)ServerMessageCode::JOIN_ROOM);
+	if (_users.size() < _maxUsers)
 	{
-		try
+		_users.push_back(user);
+		message += SUCCESS + std::to_string(_questionNo) + std::to_string(_questionTime);
+		user->send(message);
+		sendMessage(user, getUsersListMessage());
+		return true;
+	}
+	user->send(message + FAIL1);
+	return false;
+}
+
+void Room::leaveRoom(User* user)
+{
+	for (int i = 0; i < _users.size(); i++)
+		if (user == _users[i])
 		{
-			Accept();
+			_users.erase(_users.begin() + i);
+			user->send(std::to_string((int)ServerMessageCode::LEAVE_ROOM));
 		}
-		catch (std::exception ex)
+	sendMessage(user, getUsersListMessage());
+}
+
+int Room::closeRoom(User* user)
+{
+	if (user == _admin)
+	{
+		sendMessage(std::to_string((int)ServerMessageCode::CLOSE_ROOM));
+		for (int i = 0; i < _users.size(); i++)
+			if (&_users[i] != &_admin)
+				_users[i]->clearRoom();
+		return _id;
+	}
+	return -1;
+}
+
+std::vector<User*> Room::getUsers()
+{
+	return _users;
+}
+
+std::string Room::getUsersListMessage()
+{
+	std::string message = std::to_string((int)ServerMessageCode::USERS_ROOM_LIST) + std::to_string(_users.size());
+	for (int i = 0; i < _users.size(); i++)
+		message += std::to_string(_users[i]->getUsername().length()) + _users[i]->getUsername();
+	return message;
+}
+
+int Room::getQuestionsNo()
+{
+	return _questionNo;
+}
+
+int Room::getId()
+{
+	return _id;
+}
+
+std::string Room::getName()
+{
+	return _name;
+}
+
+int Room::getQuestionTime()
+{
+	return _questionTime;
+}
+
+void Room::sendMessage(User* excludeUser, std::string message)
+{
+	for (int i = 0; i < _users.size(); i++)
+		if (_users[i] != excludeUser)
 		{
-			printException(ex);
+			try
+			{
+				_users[i]->send(message);
+			}
+			catch (std::exception ex)
+			{
+				std::cout << ex.what() << std::endl;
+			}
 		}
-	}
 }
 
-void TriviaServer::bindAndListen(struct addrinfo* a) throw(...)
+void Room::sendMessage(std::string message)
 {
-	if (bind(_socket, a->ai_addr, (int)a->ai_addrlen) == SOCKET_ERROR)
-		throw std::exception("socket binding failed");
-	freeaddrinfo(a);
-	if (listen(_socket, SOMAXCONN) == SOCKET_ERROR)
-		throw std::exception("socket listening failed");
-}
-
-void TriviaServer::Accept()
-{
-	SOCKADDR_IN sockServ;
-	int sockServLen = sizeof(sockServ);
-	SOCKET clientSocket = accept(_socket, (SOCKADDR*)&sockServ, &sockServLen);
-	if (clientSocket == INVALID_SOCKET)
-	{
-		if (closesocket(_socket) == SOCKET_ERROR)
-			throw std::exception("close socket failed");
-		throw std::exception("socket accept failed");
-	}
-	std::cout << "Client connected!" << std::endl;
-	User newUser("", clientSocket);
-	//newUser->runThread();
-}
-
-//thread's function
-void TriviaServer::clientHandler(SOCKET client_socket)
-{
-
-}
-
-Room& TriviaServer::getRoomById(int id)
-{
-	return _roomsList.at(id);
-}
-
-User& TriviaServer::getUserByName(std::string name)
-{
-	for (auto& x : _connectedUsers)
-		if (x.second.getUsername() == name)
-			return x.second;
-}
-
-User& TriviaServer::getUserBySocket(SOCKET client_socket)
-{
-	return _connectedUsers.at(client_socket);
-}
-
-void TriviaServer::safeDeleteUser(RecievedMessage& message)
-{
-
-}
-
-//thread's function
-void TriviaServer::handleRecievedMessages()
-{
-	RecievedMessage message = _queRcvMessages.dequeue();
-	switch (message.getMessageCode())
-	{
-	case (int)ClientMessageCode::SIGN_IN:
-		handleSignin(message);
-		break;
-	case (int)ClientMessageCode::SIGN_OUT:
-		handleSignout(message);
-		break;
-	case (int)ClientMessageCode::SIGN_UP:
-		handleSignup(message);
-		break;
-	case (int)ClientMessageCode::LEAVE_GAME:
-		handleLeaveGame(message);
-		break;
-	case (int)ClientMessageCode::START_GAME:
-		handleStartGame(message);
-		break;
-	case (int)ClientMessageCode::ANSWER:
-		handlePlayerAnswer(message);
-		break;
-	case (int)ClientMessageCode::CREATE_ROOM:
-		handleCreateRoom(message);
-		break;
-	case (int)ClientMessageCode::CLOSE_ROOM:
-		handleCloseRoom(message);
-		break;
-	case (int)ClientMessageCode::JOIN_ROOM:
-		handleJoinRoom(message);
-		break;
-	case (int)ClientMessageCode::LEAVE_ROOM:
-		handleLeaveRoom(message);
-		break;
-	case (int)ClientMessageCode::USERS_ROOM_LIST:
-		handleGetUsersInRoom(message);
-		break;
-	case (int)ClientMessageCode::ROOM_LIST:
-		handleGetRooms(message);
-		break;
-	case (int)ClientMessageCode::BEST_SCORES:
-		handleGetBestScores(message);
-		break;
-	case (int)ClientMessageCode::PERSONAL_STATUS:
-		handleGetPersonalStatus(message);
-		break;
-	default:
-		break;
-	}
-}
-
-User& TriviaServer::handleSignin(RecievedMessage& message)				//message No. 200
-{
-
-}
-
-void TriviaServer::handleSignout(RecievedMessage& message)				//message No. 201
-{
-
-}
-
-bool TriviaServer::handleSignup(RecievedMessage& message)				//message No. 203
-{
-
-}
-
-void TriviaServer::handleLeaveGame(RecievedMessage& message)			//message No. 222
-{
-
-}
-
-void TriviaServer::handleStartGame(RecievedMessage& message)			//message No. 217
-{
-
-}
-
-void TriviaServer::handlePlayerAnswer(RecievedMessage& message)			//message No. 219
-{
-
-}
-
-bool TriviaServer::handleCreateRoom(RecievedMessage& message)			//message No. 213
-{
-
-}
-
-bool TriviaServer::handleCloseRoom(RecievedMessage& message)			//message No. 215
-{
-
-}
-
-bool TriviaServer::handleJoinRoom(RecievedMessage& message)				//message No. 209
-{
-
-}
-
-bool TriviaServer::handleLeaveRoom(RecievedMessage& message)			//message No. 211
-{
-
-}
-
-void TriviaServer::handleGetUsersInRoom(RecievedMessage& message)		//message No. 207
-{
-
-}
-
-void TriviaServer::handleGetRooms(RecievedMessage& message)			//message No. 205
-{
-
-}
-
-void TriviaServer::handleGetBestScores(RecievedMessage& message)		//message No. 223
-{
-
-}
-
-void TriviaServer::handleGetPersonalStatus(RecievedMessage& message)	//message No. 225
-{
-
-}
-
-void TriviaServer::addRecievedMessage(RecievedMessage& message)		//message No. 225
-{
-
-}
-
-void TriviaServer::buildRecieveMessage(RecievedMessage& message)		//message No. 225
-{
-
-}
-
-//this function is called in 'catch' in the try-catch block
-void printException(std::exception ex)
-{
-	std::cout << ex.what() << std::endl;
-	WSACleanup();
-	system("pause");
+	sendMessage(nullptr, message);
 }
