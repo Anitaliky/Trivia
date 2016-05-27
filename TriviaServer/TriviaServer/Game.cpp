@@ -2,8 +2,8 @@
 
 Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db, int id) : _db(db)
 {
-	//_db.insertNewGame();	//TO ADD: exception
-	//_questions = _db.initQuestions(questionsNo);
+	_db.insertNewGame();	//TO ADD: exception
+	_questions = _db.initQuestions(questionsNo);
 	_players = players;
 	_questions_no = questionsNo;
 	for (int i = 0; i < _players.size(); i++)
@@ -66,7 +66,7 @@ bool Game::handleAnswerFromUser(User* user, int answerNo, int time)
 	if (answerNo == _questions[_currQuestionIndex]->getCorrectAnswerIndex())
 	{
 		_results.at(user->getUsername())++;
-		//_db.addAnswerToPlayer(...);
+		_db.addAnswerToPlayer(_id, user->getUsername(), );
 		isCorrect = CORRECT_ANSWER;
 	}
 	std::string message = std::to_string((int)ServerMessageCode::ANSWER_CORRECTNESS) + isCorrect;

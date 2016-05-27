@@ -25,10 +25,10 @@ public:
 	void bindAndListen(struct addrinfo*) throw(...);
 	void Accept() throw(...);
 	void clientHandler(SOCKET);
-	//Room* getRoomById(int);
+	Room* getRoomById(int);
 	User* getUserByName(std::string);
 	User* getUserBySocket(SOCKET);
-	//void safeDeleteUser(RecievedMessage*);
+	void safeDeleteUser(RecievedMessage*);
 	void handleRecievedMessages();
 	bool handleSignin(RecievedMessage*);			//message No. 200
 	void handleSignout(RecievedMessage*);			//message No. 201
@@ -44,8 +44,7 @@ public:
 	void handleGetRooms(RecievedMessage*);			//message No. 205
 	void handleGetBestScores(RecievedMessage*);		//message No. 223
 	void handleGetPersonalStatus(RecievedMessage*);	//message No. 225
-	void addRecievedMessage(RecievedMessage*);		//message No. 225
-	RecievedMessage* buildRecieveMessage(SOCKET, int);		//message No. 225
+	RecievedMessage* buildRecieveMessage(SOCKET, int);
 
 private:
 	SOCKET _socket;

@@ -71,6 +71,7 @@
     <ClCompile Include="RecievedMessage.cpp" />
     <ClCompile Include="Room.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="sqlite3.c" />
     <ClCompile Include="TriviaServer.cpp" />
     <ClCompile Include="User.cpp" />
     <ClCompile Include="Validator.cpp" />
@@ -83,6 +84,7 @@
     <ClInclude Include="Question.h" />
     <ClInclude Include="RecievedMessage.h" />
     <ClInclude Include="Room.h" />
+    <ClInclude Include="sqlite3.h" />
     <ClInclude Include="TriviaServer.h" />
     <ClInclude Include="User.h" />
     <ClInclude Include="Validator.h" />
