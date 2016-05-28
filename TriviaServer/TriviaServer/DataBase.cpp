@@ -133,11 +133,13 @@ bool DataBase::addAnswerToPlayer(int gameId, std::string username, int questionI
 	std::stringstream s;
 	auto it = _playersAnswers.find("game_id");
 	int playersAmount = it != _playersAnswers.end() ? 0 : it->second.size();
-	s << "insert into t_players_answers(game_id,username,question_id,player_answer,is_correct,answer_time) values(" << gameId << "," << username << "," << questionId << "," << answer << "," << isCorrect << "," << answerTime << ");";
+	s << "insert into t_players_answers values(" << gameId << "," << username << "," << questionId << "," << answer << "," << isCorrect << "," << answerTime << ");";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
-	//TODO
+	
+	s << "select game_id from t_players_answers where game_id=" << gameId << ";";
+	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 	it = _playersAnswers.find("game_id");
-	return it->second.size() == playersAmount + 1;
+	return it != _playersAnswers.end() ? it->second.size() == playersAmount + 1 : false;
 }
 
 std::string DataBase::getScoreByUsername(std::string username)

@@ -5,7 +5,7 @@ Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db) : _
 	_questions_no = questionsNo;
 	_id = _db.insertNewGame();
 	if (_id == INVALID_ID)
-		throw("Game insert failed!");
+		throw std::exception("Game insert failed!");
 	else
 		initQuestionsFromDB();
 	_players = players;
