@@ -47,7 +47,7 @@ int Room::closeRoom(User* user)
 				_users[i]->clearRoom();
 		return _id;
 	}
-	return -1;
+	return INVALID_ID;
 }
 
 std::vector<User*> Room::getUsers()

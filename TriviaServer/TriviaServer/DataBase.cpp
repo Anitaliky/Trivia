@@ -76,7 +76,6 @@ std::map<std::string, std::string> DataBase::getBestScores()
 		//deletes the highest score from the original map in order to find the next highest score in the map
 		_bestScores.find("username")->second.erase(_bestScores.find("username")->second.begin() + max_index);
 		_bestScores.find("sum(is_correct)")->second.erase(_bestScores.find("sum(is_correct)")->second.begin() + max_index);
-
 	}
 	return returnedMap;
 }
@@ -139,6 +138,17 @@ bool DataBase::addAnswerToPlayer(int gameId, std::string username, int questionI
 	//TODO
 	it = _playersAnswers.find("game_id");
 	return it->second.size() == playersAmount + 1;
+}
+
+std::string DataBase::getScoreByUsername(std::string username)
+{
+	std::stringstream s;
+	s << "select username,sum(is_correct) from t_players_answers group by username;";	//where username=username
+	send_check(CallbackType::BEST_SCORES, _db, s, _zErrMsg);
+	auto it = _bestScores.find("username");
+	int i = 0;
+	while (i < it->second.size() && it->second[i] != username){ i++; }
+	return _bestScores.find("sum(is_correct)")->second[i];
 }
 
 //private functions

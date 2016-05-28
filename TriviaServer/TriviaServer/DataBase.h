@@ -33,6 +33,7 @@ public:
 	int insertNewGame();
 	bool updateGameStatus(int);
 	bool addAnswerToPlayer(int, std::string, int, std::string, bool, int);
+	std::string getScoreByUsername(std::string);
 
 private:
 	int _rc;

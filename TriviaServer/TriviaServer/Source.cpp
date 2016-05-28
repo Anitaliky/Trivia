@@ -1,8 +1,5 @@
 #include "TriviaServer.h"
 
-
-void printException(std::exception e);
-
 void main()
 {
 	WSADATA wsaData;
@@ -25,14 +22,8 @@ void main()
 	}
 	catch (std::exception& ex)
 	{
-		printException(ex);
+		std::cout << ex.what() << std::endl;
+		WSACleanup();
+		system("pause");
 	}
-}
-
-//this function is called in 'catch' in the try-catch block
-void printException(std::exception e)
-{
-	std::cout << e.what() << std::endl;
-	WSACleanup();
-	system("pause");
 }

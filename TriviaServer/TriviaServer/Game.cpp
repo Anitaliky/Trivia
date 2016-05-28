@@ -1,11 +1,14 @@
 #include "Game.h"
 
-Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db, int id) : _db(db)
+Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db) : _db(db)
 {
-	_db.insertNewGame();	//TO ADD: exception
-	_questions = _db.initQuestions(questionsNo);
-	_players = players;
 	_questions_no = questionsNo;
+	_id = _db.insertNewGame();
+	if (_id == INVALID_ID)
+		throw("Game insert failed!");
+	else
+		initQuestionsFromDB();
+	_players = players;
 	for (int i = 0; i < _players.size(); i++)
 	{
 		std::pair<std::string, int> result;
@@ -16,22 +19,37 @@ Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db, int
 		_players[i]->setGame(this);
 	}
 	_currQuestionIndex = 0;
-	_id = id;
 }
 
 Game::~Game()
 {
-	for (int i = _questions.size() - 1; i >= 0; i--)
+	for (int i = _questions.size() - 1; i >= 0 ; i--)
 	{
 		_questions.pop_back();
 	}
-	for (int i = _players.size() - 1; i >= 0; i--)
+	for (int i = _players.size() - 1; i >= 0 ; i--)
 		_players.pop_back();
 }
 
 void Game::handleFinishGame()
 {
-
+	if (_db.updateGameStatus(_id))
+	{
+		std::string message = std::to_string((int)ServerMessageCode::END_GAME) + std::to_string(_players.size());
+		for (int i = 0; i < _players.size(); i++)
+			message += std::to_string(_players[i]->getUsername().size()) + _players[i]->getUsername() + _db.getScoreByUsername(_players[i]->getUsername());
+		for (int i = 0; i < _players.size(); i++)
+		{
+			try
+			{
+				_players[i]->send(message);
+			}
+			catch (std::exception ex)
+			{
+				std::cout << ex.what() << std::endl;
+			}
+		}
+	}
 }
 
 void Game::sendFirstQuestion()
@@ -61,15 +79,15 @@ bool Game::handleNextTurn()
 
 bool Game::handleAnswerFromUser(User* user, int answerNo, int time)
 {
-	std::string isCorrect = INCORRECT_ANSWER;
+	bool isCorrect = INCORRECT_ANSWER;
 	_currentTurnAnswers++;
 	if (answerNo == _questions[_currQuestionIndex]->getCorrectAnswerIndex())
 	{
 		_results.at(user->getUsername())++;
-		_db.addAnswerToPlayer(_id, user->getUsername(), );
+		_db.addAnswerToPlayer(_id, user->getUsername(), _questions[_currQuestionIndex]->getId(), _questions[_currQuestionIndex]->getAnswers()[answerNo], isCorrect, time);
 		isCorrect = CORRECT_ANSWER;
 	}
-	std::string message = std::to_string((int)ServerMessageCode::ANSWER_CORRECTNESS) + isCorrect;
+	std::string message = std::to_string((int)ServerMessageCode::ANSWER_CORRECTNESS) + std::to_string(isCorrect);
 	Helper::sendData(user->getSocket(), message);
 	return handleNextTurn();
 }
@@ -94,12 +112,12 @@ int Game::getID()
 //private functions
 bool Game::insertGameToDB()
 {
-	return true;//TODO
+	return _db.insertNewGame() != INVALID_ID;
 }
 
 void Game::initQuestionsFromDB()
 {
-
+	_questions = _db.initQuestions(_questions_no);
 }
 
 void Game::sendQuestionToAllUsers() throw(...)

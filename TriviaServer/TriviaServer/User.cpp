@@ -79,7 +79,7 @@ int User::closeRoom()
 	int id;
 	if (_currRoom)
 		id = _currRoom->closeRoom(this);
-	if (id != -1)
+	if (id != INVALID_ID)
 	{
 		delete(_currRoom);
 		_currRoom = nullptr;

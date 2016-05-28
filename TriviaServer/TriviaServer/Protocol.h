@@ -1,6 +1,7 @@
 #pragma once
 
 #define DEFAULT_PORT "8820"
+#define INVALID_ID -1
 
 #define SUCCESS "0"
 #define FAIL1 "1"

@@ -7,9 +7,6 @@
 class Helper
 {
 public:
-
-	 
-	 
 	 static int getMessageTypeCode(SOCKET sc);
 	 static char* getPartFromSocket(SOCKET sc, int bytesNum, int flags);
 	 static int getIntPartFromSocket(SOCKET sc, int bytesNum);

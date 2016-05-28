@@ -53,6 +53,4 @@ private:
 	DataBase _db;
 	std::map<int, Room*> _roomsList;
 	static int _roomIdSequence;
-
-	void getValues(SOCKET, std::vector<std::string>&);
 };

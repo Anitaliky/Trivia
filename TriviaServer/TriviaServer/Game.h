@@ -14,7 +14,7 @@ class User;
 class Game
 {
 public:
-	Game(const std::vector<User*>&, int, DataBase&, int) throw(...);
+	Game(const std::vector<User*>&, int, DataBase&) throw(...);
 	~Game();
 	void handleFinishGame();
 	void sendFirstQuestion();

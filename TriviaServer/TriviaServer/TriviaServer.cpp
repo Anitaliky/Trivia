@@ -53,19 +53,18 @@ void TriviaServer::Accept()
 			throw std::exception("close socket failed");
 		throw std::exception("socket accept failed");
 	}
-	std::cout << "Client connected with socket" << clientSocket << std::endl;
+	std::cout << "Client connected with socket " << clientSocket << std::endl;
 	User* newUser = new User("", clientSocket);
 	_connectedUsers.insert(std::pair<SOCKET, User*>(clientSocket, newUser));
 	std::thread(&TriviaServer::clientHandler, this, std::ref(clientSocket)).detach();
 }
 
-//thread's function
+//queue's thread's function
 void TriviaServer::clientHandler(SOCKET client_socket)
 {
 	int msgCode = Helper::getMessageTypeCode(client_socket);
 	while (msgCode || msgCode != (int)ClientMessageCode::EXIT)
 	{
-		
 		RecievedMessage* newMessage = buildRecieveMessage(client_socket, msgCode);
 		_queRcvMessages.enqueue(newMessage);
 	}
@@ -94,7 +93,7 @@ void TriviaServer::safeDeleteUser(RecievedMessage* message)
 
 }
 
-//thread's function
+//client's thread's function
 void TriviaServer::handleRecievedMessages()
 {
 	RecievedMessage* message = _queRcvMessages.dequeue();
@@ -172,7 +171,7 @@ bool TriviaServer::handleSignin(RecievedMessage* message)
 
 void TriviaServer::handleSignout(RecievedMessage* message)
 {
-	std::map<SOCKET, User*>::iterator it = _connectedUsers.find(message->getSock());
+	auto it = _connectedUsers.find(message->getSock());
 	if (it != _connectedUsers.end())
 	{
 		_connectedUsers.erase(it);
@@ -218,21 +217,20 @@ void TriviaServer::handleStartGame(RecievedMessage* message)
 {
 	User* user = getUserBySocket(message->getSock());
 	std::vector<User*> players;
-	for (std::map<SOCKET, User*>::iterator it = _connectedUsers.begin(); it != _connectedUsers.end(); ++it)
+	for (auto it = _connectedUsers.begin(); it != _connectedUsers.end(); ++it)
 		players.push_back(it->second);
 
 	try
 	{
-		Game* game = new Game(players, user->getRoom()->getQuestionsNo(), _db, user->getRoom()->getId());
+		Game* game = new Game(players, user->getRoom()->getQuestionsNo(), _db);
 		_roomsList.erase(user->getRoom()->getId());
 		game->sendFirstQuestion();
 	}
 	catch (std::exception& ex)
 	{
 		std::cout << ex.what() << std::endl;
-		user->send(/*fail message*/"");
+		user->send(std::to_string((int)ServerMessageCode::QUESTION) + "0");
 	}
-
 }
 
 void TriviaServer::handlePlayerAnswer(RecievedMessage* message)
@@ -267,7 +265,7 @@ bool TriviaServer::handleCloseRoom(RecievedMessage* message)
 	if (room)
 	{
 		int roomID = getUserBySocket(message->getSock())->closeRoom();
-		if (roomID != -1)
+		if (roomID != INVALID_ID)
 		{
 			_roomsList.erase(roomID);
 			return true;
@@ -319,7 +317,7 @@ void TriviaServer::handleGetUsersInRoom(RecievedMessage* message)
 	if (user)
 	{
 		std::string roomID = message->getValues()[0];
-		if (std::stoi(roomID) != -1)
+		if (std::stoi(roomID) != INVALID_ID)
 		{
 			Room* room = getRoomById(std::stoi(roomID));
 			if (room)
@@ -333,7 +331,7 @@ void TriviaServer::handleGetUsersInRoom(RecievedMessage* message)
 void TriviaServer::handleGetRooms(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::ROOM_LIST) + std::to_string(_roomsList.size());
-	for (std::map<int, Room*>::iterator it = _roomsList.begin(); it != _roomsList.end(); ++it)
+	for (auto it = _roomsList.begin(); it != _roomsList.end(); ++it)
 		msg += std::to_string(it->first) + it->second->getName();
 	getUserBySocket(message->getSock())->send(msg);
 }
@@ -342,7 +340,7 @@ void TriviaServer::handleGetBestScores(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::BEST_SCORES);
 	std::map<std::string, std::string> bestScores = _db.getBestScores();
-	for (std::map<std::string, std::string>::iterator it = bestScores.begin(); it != bestScores.end(); ++it)
+	for (auto it = bestScores.begin(); it != bestScores.end(); ++it)
 		msg += std::to_string(it->first.size()) + it->first + it->second;
 	for (int i = bestScores.size(); i < 3; i++)
 		msg += "00";
@@ -365,18 +363,18 @@ RecievedMessage* TriviaServer::buildRecieveMessage(SOCKET clientSocket, int msgC
 	{
 	case (int)ClientMessageCode::SIGN_IN:
 		for (int i = 0; i < 2; i++)
-			getValues(clientSocket, values);
+			values.push_back(Helper::getStringPartFromSocket(clientSocket, Helper::getIntPartFromSocket(clientSocket, 2)));
 		break;
 	case (int)ClientMessageCode::SIGN_UP:
 		for (int i = 0; i < 3; i++)
-			getValues(clientSocket, values);
+			values.push_back(Helper::getStringPartFromSocket(clientSocket, Helper::getIntPartFromSocket(clientSocket, 2)));
 		break;
 	case (int)ClientMessageCode::ANSWER:
 		values.push_back(Helper::getStringPartFromSocket(clientSocket, 1)); //answerNumber 
 		values.push_back(Helper::getStringPartFromSocket(clientSocket, 2)); //TimeInSeconds
 		break;
 	case (int)ClientMessageCode::CREATE_ROOM:
-		getValues(clientSocket, values); //roomName 
+		values.push_back(Helper::getStringPartFromSocket(clientSocket, Helper::getIntPartFromSocket(clientSocket, 2))); //roomName 
 		values.push_back(Helper::getStringPartFromSocket(clientSocket, 1)); //playersNumber
 		for (int i = 0; i < 2; i++) //questionsNumber, questionTimeInSec
 			values.push_back(Helper::getStringPartFromSocket(clientSocket, 2));
@@ -390,10 +388,4 @@ RecievedMessage* TriviaServer::buildRecieveMessage(SOCKET clientSocket, int msgC
 	}
 	RecievedMessage* ret = new RecievedMessage(clientSocket, msgCode, values);
 	return ret;
-}
-
-//a private function for buildRecieveMessage
-void TriviaServer::getValues(SOCKET clientSocket, std::vector<std::string> &values)
-{
-	values.push_back(Helper::getStringPartFromSocket(clientSocket, Helper::getIntPartFromSocket(clientSocket, 2)));
 }
