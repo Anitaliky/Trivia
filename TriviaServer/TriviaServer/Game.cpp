@@ -35,16 +35,16 @@ void Game::handleFinishGame()
 {
 	if (_db.updateGameStatus(_id))
 	{
-		std::string message = std::to_string((int)ServerMessageCode::END_GAME) + std::to_string(_players.size());
+		std::string message = std::to_string((int)ServerMessageCode::END_GAME) + Helper::getPaddedNumber(_players.size(), 1);
 		for (int i = 0; i < _players.size(); i++)
-			message += std::to_string(_players[i]->getUsername().size()) + _players[i]->getUsername() + _db.getScoreByUsername(_players[i]->getUsername());
+			message += Helper::getPaddedNumber(_players[i]->getUsername().size(), 2) + _players[i]->getUsername() + Helper::getPaddedNumber(std::stoi(_db.getScoreByUsername(_players[i]->getUsername())), 2);
 		for (int i = 0; i < _players.size(); i++)
 		{
 			try
 			{
 				_players[i]->send(message);
 			}
-			catch (std::exception ex)
+			catch (std::exception& ex)
 			{
 				std::cout << ex.what() << std::endl;
 			}
@@ -124,10 +124,10 @@ void Game::sendQuestionToAllUsers() throw(...)
 {
 	std::string question = _questions[_currQuestionIndex]->getQuestion();
 	std::string* answers = _questions[_currQuestionIndex]->getAnswers();
-	std::string message = std::to_string((int)(ServerMessageCode::QUESTION)) + std::to_string(question.length()) + question;
+	std::string message = std::to_string((int)(ServerMessageCode::QUESTION)) + Helper::getPaddedNumber(question.length(), 3) + question;
 	if (question.length())
 		for (int i = 0; i < answers->length(); i++)
-			message += std::to_string(answers[i].length()) + answers[i];
+			message += Helper::getPaddedNumber(answers[i].length(), 3) + answers[i];
 	_currentTurnAnswers = 0;
 	for (int i = 0; i < _players.size(); i++)
 	{
@@ -135,7 +135,7 @@ void Game::sendQuestionToAllUsers() throw(...)
 		{
 			_players[i]->send(message);
 		}
-		catch (std::exception ex)
+		catch (std::exception& ex)
 		{
 			std::cout << ex.what() << std::endl;
 		}

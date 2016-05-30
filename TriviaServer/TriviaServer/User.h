@@ -18,6 +18,7 @@ public:
 	Room* getRoom();
 	Game* getGame();
 	void setGame(Game*);
+	void setUsername(std::string);
 	void clearRoom();
 	bool createRoom(int, std::string, int, int, int);
 	bool joinRoom(Room*);

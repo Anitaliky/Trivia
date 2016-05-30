@@ -52,5 +52,5 @@ private:
 	SafeQueue<RecievedMessage*> _queRcvMessages;
 	DataBase _db;
 	std::map<int, Room*> _roomsList;
-	static int _roomIdSequence;
+	int _roomIdSequence;
 };

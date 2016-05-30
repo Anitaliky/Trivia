@@ -62,12 +62,13 @@ void TriviaServer::Accept()
 //queue's thread's function
 void TriviaServer::clientHandler(SOCKET client_socket)
 {
-	int msgCode = Helper::getMessageTypeCode(client_socket);
-	while (msgCode || msgCode != (int)ClientMessageCode::EXIT)
+	int msgCode;
+	do
 	{
+		msgCode = Helper::getMessageTypeCode(client_socket);
 		RecievedMessage* newMessage = buildRecieveMessage(client_socket, msgCode);
 		_queRcvMessages.enqueue(newMessage);
-	}
+	} while (msgCode != (int)ClientMessageCode::EXIT);
 }
 
 Room* TriviaServer::getRoomById(int id)
@@ -96,54 +97,57 @@ void TriviaServer::safeDeleteUser(RecievedMessage* message)
 //client's thread's function
 void TriviaServer::handleRecievedMessages()
 {
-	RecievedMessage* message = _queRcvMessages.dequeue();
-	std::cout << "message code is:" << message->getMessageCode() << std::endl;
-	switch (message->getMessageCode())
+	while (true)
 	{
-	case (int)ClientMessageCode::SIGN_IN:
-		handleSignin(message);
-		break;
-	case (int)ClientMessageCode::SIGN_OUT:
-		handleSignout(message);
-		break;
-	case (int)ClientMessageCode::SIGN_UP:
-		handleSignup(message);
-		break;
-	case (int)ClientMessageCode::LEAVE_GAME:
-		handleLeaveGame(message);
-		break;
-	case (int)ClientMessageCode::START_GAME:
-		handleStartGame(message);
-		break;
-	case (int)ClientMessageCode::ANSWER:
-		handlePlayerAnswer(message);
-		break;
-	case (int)ClientMessageCode::CREATE_ROOM:
-		handleCreateRoom(message);
-		break;
-	case (int)ClientMessageCode::CLOSE_ROOM:
-		handleCloseRoom(message);
-		break;
-	case (int)ClientMessageCode::JOIN_ROOM:
-		handleJoinRoom(message);
-		break;
-	case (int)ClientMessageCode::LEAVE_ROOM:
-		handleLeaveRoom(message);
-		break;
-	case (int)ClientMessageCode::USERS_ROOM_LIST:
-		handleGetUsersInRoom(message);
-		break;
-	case (int)ClientMessageCode::ROOM_LIST:
-		handleGetRooms(message);
-		break;
-	case (int)ClientMessageCode::BEST_SCORES:
-		handleGetBestScores(message);
-		break;
-	case (int)ClientMessageCode::PERSONAL_STATUS:
-		handleGetPersonalStatus(message);
-		break;
-	default:
-		break;
+		RecievedMessage* message = _queRcvMessages.dequeue();
+		std::cout << "message code is:" << message->getMessageCode() << std::endl;
+		switch (message->getMessageCode())
+		{
+		case (int)ClientMessageCode::SIGN_IN:
+			handleSignin(message);
+			break;
+		case (int)ClientMessageCode::SIGN_OUT:
+			handleSignout(message);
+			break;
+		case (int)ClientMessageCode::SIGN_UP:
+			handleSignup(message);
+			break;
+		case (int)ClientMessageCode::LEAVE_GAME:
+			handleLeaveGame(message);
+			break;
+		case (int)ClientMessageCode::START_GAME:
+			handleStartGame(message);
+			break;
+		case (int)ClientMessageCode::ANSWER:
+			handlePlayerAnswer(message);
+			break;
+		case (int)ClientMessageCode::CREATE_ROOM:
+			handleCreateRoom(message);
+			break;
+		case (int)ClientMessageCode::CLOSE_ROOM:
+			handleCloseRoom(message);
+			break;
+		case (int)ClientMessageCode::JOIN_ROOM:
+			handleJoinRoom(message);
+			break;
+		case (int)ClientMessageCode::LEAVE_ROOM:
+			handleLeaveRoom(message);
+			break;
+		case (int)ClientMessageCode::USERS_ROOM_LIST:
+			handleGetUsersInRoom(message);
+			break;
+		case (int)ClientMessageCode::ROOM_LIST:
+			handleGetRooms(message);
+			break;
+		case (int)ClientMessageCode::BEST_SCORES:
+			handleGetBestScores(message);
+			break;
+		case (int)ClientMessageCode::PERSONAL_STATUS:
+			handleGetPersonalStatus(message);
+			break;
+		default:
+			break;
+		}
 	}
 }
 
@@ -151,16 +155,14 @@ bool TriviaServer::handleSignin(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::SIGN_IN);
 	std::vector<std::string> user_pass = message->getValues();
-	if (_db.isUserAndPassMatch(user_pass[0], user_pass[1]))
+	if (_db.isUserAndPassMatch(user_pass[0], user_pass[1]) && !getUserByName(user_pass[0]))
 	{
-		if (_connectedUsers.find(message->getSock()) == _connectedUsers.end())
+		User* user = _connectedUsers.find(message->getSock())->second;
+		if (user->getUsername() == "")
 		{
-			User* newUser = new User(user_pass[0], message->getSock());
-			std::pair<SOCKET, User*> user;
-			user.first = message->getSock();
-			user.second = newUser;
-			_connectedUsers.insert(user);
-			newUser->send(msg + SUCCESS);
+			user->setUsername(user_pass[0]);
+			user->send(msg + SUCCESS);
+			std::cout << msg + SUCCESS << std::endl;
 			return true;
 		}
 		_connectedUsers.find(message->getSock())->second->send(msg + FAIL2);
@@ -330,9 +332,9 @@ void TriviaServer::handleGetUsersInRoom(RecievedMessage* message)
 
 void TriviaServer::handleGetRooms(RecievedMessage* message)
 {
-	std::string msg = std::to_string((int)ServerMessageCode::ROOM_LIST) + std::to_string(_roomsList.size());
+	std::string msg = std::to_string((int)ServerMessageCode::ROOM_LIST) + Helper::getPaddedNumber(_roomsList.size(), 4);
 	for (auto it = _roomsList.begin(); it != _roomsList.end(); ++it)
-		msg += std::to_string(it->first) + it->second->getName();
+		msg += Helper::getPaddedNumber(it->first, 4) + Helper::getPaddedNumber(it->second->getName().size(), 2) + it->second->getName();
 	getUserBySocket(message->getSock())->send(msg);
 }
 
@@ -341,7 +343,7 @@ void TriviaServer::handleGetBestScores(RecievedMessage* message)
 	std::string msg = std::to_string((int)ServerMessageCode::BEST_SCORES);
 	std::map<std::string, std::string> bestScores = _db.getBestScores();
 	for (auto it = bestScores.begin(); it != bestScores.end(); ++it)
-		msg += std::to_string(it->first.size()) + it->first + it->second;
+		msg += Helper::getPaddedNumber(it->first.size(), 2) + it->first + Helper::getPaddedNumber(std::stoi(it->second), 6);
 	for (int i = bestScores.size(); i < 3; i++)
 		msg += "00";
 	getUserBySocket(message->getSock())->send(msg);
