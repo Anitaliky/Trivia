@@ -25,6 +25,7 @@ public:
 	void leaveRoom();
 	int closeRoom();
 	bool leaveGame();
+	void setCurrRoom(Room* room);
 
 private:
 	std::string _username;

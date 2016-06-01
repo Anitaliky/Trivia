@@ -79,14 +79,14 @@ bool Game::handleNextTurn()
 
 bool Game::handleAnswerFromUser(User* user, int answerNo, int time)
 {
-	bool isCorrect = INCORRECT_ANSWER;
+	bool isCorrect = false;
 	_currentTurnAnswers++;
 	if (answerNo == _questions[_currQuestionIndex]->getCorrectAnswerIndex())
 	{
+		isCorrect = true;
 		_results.at(user->getUsername())++;
-		_db.addAnswerToPlayer(_id, user->getUsername(), _questions[_currQuestionIndex]->getId(), _questions[_currQuestionIndex]->getAnswers()[answerNo], isCorrect, time);
-		isCorrect = CORRECT_ANSWER;
 	}
+	_db.addAnswerToPlayer(_id, user->getUsername(), _questions[_currQuestionIndex]->getId(), _questions[_currQuestionIndex]->getAnswers()[answerNo], isCorrect, time);
 	std::string message = std::to_string((int)ServerMessageCode::ANSWER_CORRECTNESS) + std::to_string(isCorrect);
 	Helper::sendData(user->getSocket(), message);
 	return handleNextTurn();
@@ -125,9 +125,9 @@ void Game::sendQuestionToAllUsers() throw(...)
 	std::string question = _questions[_currQuestionIndex]->getQuestion();
 	std::string* answers = _questions[_currQuestionIndex]->getAnswers();
 	std::string message = std::to_string((int)(ServerMessageCode::QUESTION)) + Helper::getPaddedNumber(question.length(), 3) + question;
-	if (question.length())
-		for (int i = 0; i < answers->length(); i++)
-			message += Helper::getPaddedNumber(answers[i].length(), 3) + answers[i];
+	if (question.size())
+		for (int i = 0; i < 4; i++)
+			message += Helper::getPaddedNumber(answers[i].size(), 3) + answers[i];
 	_currentTurnAnswers = 0;
 	for (int i = 0; i < _players.size(); i++)
 	{

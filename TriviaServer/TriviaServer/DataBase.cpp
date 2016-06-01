@@ -90,28 +90,24 @@ std::vector<std::string> DataBase::getPersonalStatus(std::string username)
 	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
 	//get number of right answers
-	s << "select count(*) from t_players_answers where username='" << username << "' where is_correct=1;";
+	s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=1;";
 	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
 	//get number of wrong answers
-	s << "select count(*) from t_players_answers where username='" << username << "' where is_correct=0;";
+	s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=0;";
 	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
 	//get average time for answers
 	s << "select avg(answer_time) from t_players_answers where username='" << username << "';";
 	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
-	for (int i = 0; i < 4; i++)
-		ret.push_back(_personalStatus[0]);
-	_personalStatus.clear();
-
-	return ret;
+	return _personalStatus;
 }
 
 int DataBase::insertNewGame()
 {
 	std::stringstream s;
-	s << "insert into t_games(status,start_time,end_time) values(0,NOW,NULL);"; //DOESN'T INSERT
+	s << "insert into t_games(status,start_time,end_time) values(0,'NOW',NULL);"; //DOESN'T INSERT
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 
 	s << "select game_id from t_games;";
@@ -123,25 +119,24 @@ int DataBase::insertNewGame()
 bool DataBase::updateGameStatus(int gameId)
 {
 	std::stringstream s;
-	s << "update t_game set status=1,end_time=NOW where game_id=" << gameId << ";";
+	s << "update t_game set status=1,end_time='NOW' where game_id=" << gameId << ";";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
-	auto it_status = _results.find("status");
-	auto it_end = _results.find("end_time");
-	return std::stoi(it_status->second[it_status->second.size() - 1]) == 1 && it_end->second[it_end->second.size() - 1] == "NOW";
+	return true;
 }
 
 bool DataBase::addAnswerToPlayer(int gameId, std::string username, int questionId, std::string answer, bool isCorrect, int answerTime)
 {
 	std::stringstream s;
-	auto it = _playersAnswers.find("game_id");
-	int playersAmount = it != _playersAnswers.end() ? 0 : it->second.size();
+	s << "select count(*) from t_players_answers;";
+	send_check(CallbackType::PLAYERS_ANSWERS, _db, s, _zErrMsg);
+	int num = std::stoi(_playersAnswers.at("count(*)")[_playersAnswers.at("count(*)").size() - 1]);
+
 	s << "insert into t_players_answers values(" << gameId << ",'" << username << "'," << questionId << ",'" << answer << "'," << isCorrect << "," << answerTime << ");";
-	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
+	send_check(CallbackType::PLAYERS_ANSWERS, _db, s, _zErrMsg);
 	
-	s << "select game_id from t_players_answers where game_id=" << gameId << ";";
-	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
-	it = _playersAnswers.find("game_id");
-	return it != _playersAnswers.end() ? it->second.size() == playersAmount + 1 : false;
+	s << "select count(*) from t_players_answers;";
+	send_check(CallbackType::PLAYERS_ANSWERS, _db, s, _zErrMsg);
+	return num + 1 == std::stoi(_playersAnswers.at("count(*)")[_playersAnswers.at("count(*)").size() - 1]);
 }
 
 std::string DataBase::getScoreByUsername(std::string username)
@@ -198,10 +193,10 @@ void DataBase::send_check(CallbackType callback, sqlite3* db, std::stringstream 
 		rc = sqlite3_exec(db, s.str().c_str(), callbackCount, &_bestScores, &zErrMsg);
 		break;
 	case CallbackType::PERSONAL_STATUS:
-		rc = sqlite3_exec(db, s.str().c_str(), callbackCount, &_personalStatus, &zErrMsg);
+		rc = sqlite3_exec(db, s.str().c_str(), callbackPersonStatus, &_personalStatus, &zErrMsg);
 		break;
 	case CallbackType::PLAYERS_ANSWERS:
-		rc = sqlite3_exec(db, s.str().c_str(), callbackPersonStatus, &_playersAnswers, &zErrMsg);
+		rc = sqlite3_exec(db, s.str().c_str(), callbackCount, &_playersAnswers, &zErrMsg);
 	default:
 		break;
 	}

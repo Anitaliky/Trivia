@@ -155,19 +155,20 @@ bool TriviaServer::handleSignin(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::SIGN_IN);
 	std::vector<std::string> user_pass = message->getValues();
-	if (_db.isUserAndPassMatch(user_pass[0], user_pass[1]) && !getUserByName(user_pass[0]))
+	if (_db.isUserAndPassMatch(user_pass[0], user_pass[1]))
 	{
-		User* user = _connectedUsers.find(message->getSock())->second;
-		if (user->getUsername() == "")
+		User* user = getUserByName(user_pass[0]);
+		if (!user)
 		{
+			user = getUserBySocket(message->getSock());
 			user->setUsername(user_pass[0]);
 			user->send(msg + SUCCESS);
-			std::cout << msg + SUCCESS << std::endl;
 			return true;
 		}
 		_connectedUsers.find(message->getSock())->second->send(msg + FAIL2);
+		return false;
 	}
-	getUserByName(user_pass[0])->send(msg + FAIL1);
+	getUserBySocket(message->getSock())->send(msg + FAIL1);
 	return false;
 }
 
@@ -226,6 +227,8 @@ void TriviaServer::handleStartGame(RecievedMessage* message)
 	{
 		Game* game = new Game(players, user->getRoom()->getQuestionsNo(), _db);
 		_roomsList.erase(user->getRoom()->getId());
+		user->setCurrRoom(nullptr);
+		_connectedUsers.at(message->getSock()) = user;
 		game->sendFirstQuestion();
 	}
 	catch (std::exception& ex)
@@ -255,6 +258,7 @@ bool TriviaServer::handleCreateRoom(RecievedMessage* message)
 			newRoom.first = _roomIdSequence;
 			newRoom.second = user->getRoom();
 			_roomsList.insert(newRoom);
+			_connectedUsers.at(message->getSock()) = user;
 			return true;
 		}
 	}
@@ -288,7 +292,8 @@ bool TriviaServer::handleJoinRoom(RecievedMessage* message)
 		{
 			if (user->joinRoom(room))
 			{
-				user->send(msg + SUCCESS + std::to_string(room->getQuestionsNo()) + std::to_string(room->getQuestionTime()));
+				user->send(msg + SUCCESS + Helper::getPaddedNumber(room->getQuestionsNo(), 2) + Helper::getPaddedNumber(room->getQuestionTime(), 2));
+				_connectedUsers.at(message->getSock()) = user;
 				return true;
 			}
 			user->send(msg + FAIL1);
@@ -353,8 +358,21 @@ void TriviaServer::handleGetPersonalStatus(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::PERSONAL_STATUS);
 	std::vector<std::string> status = _db.getPersonalStatus(getUserBySocket(message->getSock())->getUsername());
-	for (int i = 0; i < status.size(); i++)
-		msg += status[i];
+	msg += Helper::getPaddedNumber(std::stoi(status[0]), 4) + Helper::getPaddedNumber(std::stoi(status[1]), 6) + Helper::getPaddedNumber(std::stoi(status[2]), 6);
+	
+	//converts the time(float) to the format of the sent message
+	if (status[3][1] == '.')
+	{
+		std::cout << std::string(1, status[3].at(0));
+		msg += "0" + std::string(1, status[3].at(0));
+		msg += status[3].size() == 3 ? std::string(1, status[3].at(2)) + "0" : std::string(status[3].substr(2, 2));
+	}
+	else
+	{
+		msg += std::string(status[3].substr(0, 2));
+		msg += status[3].size() == 4 ? std::string(1, status[3].at(3)) + "0" : std::string(status[3].substr(3, 2));
+	}
+
 	getUserBySocket(message->getSock())->send(msg);
 }
 

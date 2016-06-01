@@ -17,7 +17,7 @@ bool Room::joinRoom(User* user)
 	if (_users.size() < _maxUsers)
 	{
 		_users.push_back(user);
-		message += SUCCESS + std::to_string(_questionNo) + std::to_string(_questionTime);
+		message += SUCCESS + Helper::getPaddedNumber(_questionNo, 2) + Helper::getPaddedNumber(_questionTime, 2);
 		user->send(message);
 		sendMessage(user, getUsersListMessage());
 		return true;
@@ -32,7 +32,7 @@ void Room::leaveRoom(User* user)
 		if (user == _users[i])
 		{
 			_users.erase(_users.begin() + i);
-			user->send(std::to_string((int)ServerMessageCode::LEAVE_ROOM));
+			user->send(std::to_string((int)ServerMessageCode::LEAVE_ROOM) + SUCCESS);
 		}
 	sendMessage(user, getUsersListMessage());
 }
@@ -57,9 +57,9 @@ std::vector<User*> Room::getUsers()
 
 std::string Room::getUsersListMessage()
 {
-	std::string message = std::to_string((int)ServerMessageCode::USERS_ROOM_LIST) + std::to_string(_users.size());
+	std::string message = std::to_string((int)ServerMessageCode::USERS_ROOM_LIST) + Helper::getPaddedNumber(_users.size(), 1);
 	for (int i = 0; i < _users.size(); i++)
-		message += std::to_string(_users[i]->getUsername().length()) + _users[i]->getUsername();
+		message += Helper::getPaddedNumber(_users[i]->getUsername().length(), 2) + _users[i]->getUsername();
 	return message;
 }
 

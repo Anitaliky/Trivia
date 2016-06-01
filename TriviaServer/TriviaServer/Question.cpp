@@ -5,8 +5,8 @@ Question::Question(int id, std::string question, std::string correctAnswer, std:
 {
 	int j = 0;
 	std::string nonCorrectAnswers[3] = { answer2, answer3, answer4 };
-	std::srand(std::time(0));
 	_correctAnswerIndex = std::rand() % 4 + 0;
+	std::cout << "correct answer index: " << _correctAnswerIndex << std::endl;
 	for (int i = 0; i < 4; i++)
 	{
 		if (i == _correctAnswerIndex)

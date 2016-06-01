@@ -9,6 +9,7 @@ User::User(std::string username, SOCKET sock)
 void User::send(std::string message)
 {
 	Helper::sendData(_sock, message);
+	std::cout << "Sent message: " << message << std::endl;
 }
 
 std::string User::getUsername()
@@ -34,7 +35,6 @@ Game* User::getGame()
 void User::setGame(Game* currGame)
 {
 	_currGame = currGame;
-	_currRoom = nullptr;
 }
 
 void User::setUsername(std::string username)
@@ -54,8 +54,8 @@ bool User::createRoom(int roomId, std::string roomName, int maxUsers, int questi
 		send(std::to_string((int)ServerMessageCode::CREATE_ROOM) + FAIL1);
 		return false;
 	}
-	Room room(roomId, this, roomName, maxUsers, questionsNo, questionTime);
-	_currRoom = &room;
+	Room* room = new Room(roomId, this, roomName, maxUsers, questionsNo, questionTime);
+	_currRoom = room;
 	send(std::to_string((int)ServerMessageCode::CREATE_ROOM) + SUCCESS);
 	return true;
 }
@@ -63,7 +63,10 @@ bool User::createRoom(int roomId, std::string roomName, int maxUsers, int questi
 bool User::joinRoom(Room* room)
 {
 	if (!_currRoom && room->joinRoom(this))
+	{
+		_currRoom = room;
 		return true;
+	}
 	send(std::to_string((int)ServerMessageCode::CREATE_ROOM) + FAIL1);
 	return false;
 }
@@ -97,4 +100,9 @@ bool User::leaveGame()
 		_currGame = nullptr;
 	}
 	return exit;
+}
+
+void User::setCurrRoom(Room* room)
+{
+	_currRoom = room;
 }
