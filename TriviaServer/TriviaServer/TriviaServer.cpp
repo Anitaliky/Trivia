@@ -63,12 +63,22 @@ void TriviaServer::Accept()
 void TriviaServer::clientHandler(SOCKET client_socket)
 {
 	int msgCode;
-	while (true)
+	do
 	{
-		msgCode = Helper::getMessageTypeCode(client_socket);
-		RecievedMessage* newMessage = buildRecieveMessage(client_socket, msgCode);
-		_queRcvMessages.enqueue(newMessage);
-	}
+		try
+		{
+			msgCode = Helper::getMessageTypeCode(client_socket);
+			RecievedMessage* newMessage = buildRecieveMessage(client_socket, msgCode);
+			_queRcvMessages.enqueue(newMessage);
+		}
+		catch (std::exception& ex)
+		{
+			std::cout << ex.what() << std::endl;
+			RecievedMessage* newMessage = buildRecieveMessage(client_socket, (int)ClientMessageCode::EXIT);
+			_queRcvMessages.enqueue(newMessage);
+			break;
+		}
+	} while (msgCode && msgCode != (int)ClientMessageCode::EXIT);
 }
 
 Room* TriviaServer::getRoomById(int id)
