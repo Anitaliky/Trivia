@@ -31,10 +31,10 @@ bool DataBase::addNewUser(std::string username, std::string password, std::strin
 	std::stringstream s;
 	auto it = _results.find("username");
 	int usersAmmount = it == _results.end() ? 0 : it->second.size();
-	s << "insert into t_users values(" << username << "," << password << "," << email << ");";
+	s << "insert into t_users values('" << username << "','" << password << "','" << email << "');";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 
-	s << "select username from t_users where username=" << username << ";";
+	s << "select username from t_users where username='" << username << "';";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 	it = _results.find("username");
 	return it != _results.end() ? it->second.size() == usersAmmount + 1 : false;
@@ -190,6 +190,7 @@ void DataBase::send_check(CallbackType callback, sqlite3* db, std::stringstream 
 		rc = sqlite3_exec(db, s.str().c_str(), callbackCount, &_questions, &zErrMsg);
 		break;
 	case CallbackType::BEST_SCORES:
+		_bestScores.clear();
 		rc = sqlite3_exec(db, s.str().c_str(), callbackCount, &_bestScores, &zErrMsg);
 		break;
 	case CallbackType::PERSONAL_STATUS:

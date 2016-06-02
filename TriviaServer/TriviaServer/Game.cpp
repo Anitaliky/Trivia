@@ -81,12 +81,13 @@ bool Game::handleAnswerFromUser(User* user, int answerNo, int time)
 {
 	bool isCorrect = false;
 	_currentTurnAnswers++;
-	if (answerNo == _questions[_currQuestionIndex]->getCorrectAnswerIndex())
+	if (answerNo == _questions[_currQuestionIndex]->getCorrectAnswerIndex() + 1)
 	{
 		isCorrect = true;
 		_results.at(user->getUsername())++;
 	}
-	_db.addAnswerToPlayer(_id, user->getUsername(), _questions[_currQuestionIndex]->getId(), _questions[_currQuestionIndex]->getAnswers()[answerNo], isCorrect, time);
+	std::string answer = answerNo != 5 ? _questions[_currQuestionIndex]->getAnswers()[answerNo] : "";
+	_db.addAnswerToPlayer(_id, user->getUsername(), _questions[_currQuestionIndex]->getId(), answer, isCorrect, time);
 	std::string message = std::to_string((int)ServerMessageCode::ANSWER_CORRECTNESS) + std::to_string(isCorrect);
 	Helper::sendData(user->getSocket(), message);
 	return handleNextTurn();

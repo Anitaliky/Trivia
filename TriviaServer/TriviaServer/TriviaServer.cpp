@@ -63,12 +63,12 @@ void TriviaServer::Accept()
 void TriviaServer::clientHandler(SOCKET client_socket)
 {
 	int msgCode;
-	do
+	while (true)
 	{
 		msgCode = Helper::getMessageTypeCode(client_socket);
 		RecievedMessage* newMessage = buildRecieveMessage(client_socket, msgCode);
 		_queRcvMessages.enqueue(newMessage);
-	} while (msgCode != (int)ClientMessageCode::EXIT);
+	}
 }
 
 Room* TriviaServer::getRoomById(int id)
@@ -86,12 +86,20 @@ User* TriviaServer::getUserByName(std::string name)
 
 User* TriviaServer::getUserBySocket(SOCKET client_socket)
 {
-	return _connectedUsers.at(client_socket);
+	return _connectedUsers.find(client_socket) != _connectedUsers.end() ? _connectedUsers.at(client_socket) : nullptr;
 }
 
 void TriviaServer::safeDeleteUser(RecievedMessage* message)
 {
-
+	try
+	{
+		handleSignout(message);
+		closesocket(message->getSock());
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << ex.what() << std::endl;
+	}
 }
 
 //client's thread's function
@@ -145,7 +153,9 @@ void TriviaServer::handleRecievedMessages()
 		case (int)ClientMessageCode::PERSONAL_STATUS:
 			handleGetPersonalStatus(message);
 			break;
+		case (int)ClientMessageCode::EXIT:
 		default:
+			safeDeleteUser(message);
 			break;
 		}
 	}
@@ -195,6 +205,8 @@ bool TriviaServer::handleSignup(RecievedMessage* message)
 			{
 				if (_db.addNewUser(message->getValues()[0], message->getValues()[1], message->getValues()[2]))
 				{
+					User* newUser = new User(message->getValues()[0], message->getSock());
+					_connectedUsers.insert(std::pair<SOCKET, User*>(message->getSock(), newUser));
 					getUserByName(message->getValues()[0])->send(msg + SUCCESS);
 					return true;
 				}
@@ -243,7 +255,8 @@ void TriviaServer::handlePlayerAnswer(RecievedMessage* message)
 	std::vector<std::string> answer_time = message->getValues();
 	Game* game = getUserBySocket(message->getSock())->getGame();
 	if (game)
-		game->handleAnswerFromUser(getUserBySocket(message->getSock()), std::stoi(answer_time[0]), std::stoi(answer_time[1]));
+		if (!game->handleAnswerFromUser(getUserBySocket(message->getSock()), std::stoi(answer_time[0]), std::stoi(answer_time[1])))
+			delete game;
 }
 
 bool TriviaServer::handleCreateRoom(RecievedMessage* message)
@@ -267,14 +280,19 @@ bool TriviaServer::handleCreateRoom(RecievedMessage* message)
 
 bool TriviaServer::handleCloseRoom(RecievedMessage* message)
 {
-	Room* room = getUserBySocket(message->getSock())->getRoom();
-	if (room)
+	User* user = getUserBySocket(message->getSock());
+	if (user)
 	{
-		int roomID = getUserBySocket(message->getSock())->closeRoom();
-		if (roomID != INVALID_ID)
+		Room* room = user->getRoom();
+		if (room)
 		{
-			_roomsList.erase(roomID);
-			return true;
+			int roomID = user->closeRoom();
+			if (roomID != INVALID_ID)
+			{
+				_roomsList.erase(roomID);
+				delete room;
+				return true;
+			}
 		}
 	}
 	return false;
