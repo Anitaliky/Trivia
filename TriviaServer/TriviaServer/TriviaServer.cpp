@@ -104,6 +104,7 @@ void TriviaServer::safeDeleteUser(RecievedMessage* message)
 	try
 	{
 		handleSignout(message);
+		_connectedUsers.erase(_connectedUsers.find(message->getSock()));
 		closesocket(message->getSock());
 	}
 	catch (std::exception& ex)
@@ -197,7 +198,7 @@ void TriviaServer::handleSignout(RecievedMessage* message)
 	auto it = _connectedUsers.find(message->getSock());
 	if (it != _connectedUsers.end())
 	{
-		_connectedUsers.erase(it);
+		it->second->setUsername("");
 		if (handleCloseRoom(message))
 			if (handleLeaveRoom(message))
 				handleLeaveGame(message);
@@ -215,21 +216,19 @@ bool TriviaServer::handleSignup(RecievedMessage* message)
 			{
 				if (_db.addNewUser(message->getValues()[0], message->getValues()[1], message->getValues()[2]))
 				{
-					User* newUser = new User(message->getValues()[0], message->getSock());
-					_connectedUsers.insert(std::pair<SOCKET, User*>(message->getSock(), newUser));
-					getUserByName(message->getValues()[0])->send(msg + SUCCESS);
+					getUserBySocket(message->getSock())->send(msg + SUCCESS);
 					return true;
 				}
-				getUserByName(message->getValues()[0])->send(msg + FAIL4);
+				getUserBySocket(message->getSock())->send(msg + FAIL4);
 				return false;
 			}
-			getUserByName(message->getValues()[0])->send(msg + FAIL2);
+			getUserBySocket(message->getSock())->send(msg + FAIL2);
 			return false;
 		}
-		getUserByName(message->getValues()[0])->send(msg + FAIL3);
+		getUserBySocket(message->getSock())->send(msg + FAIL3);
 		return false;
 	}
-	getUserByName(message->getValues()[0])->send(msg + FAIL1);
+	getUserBySocket(message->getSock())->send(msg + FAIL1);
 	return false;
 }
 
@@ -386,21 +385,24 @@ void TriviaServer::handleGetPersonalStatus(RecievedMessage* message)
 {
 	std::string msg = std::to_string((int)ServerMessageCode::PERSONAL_STATUS);
 	std::vector<std::string> status = _db.getPersonalStatus(getUserBySocket(message->getSock())->getUsername());
-	msg += Helper::getPaddedNumber(std::stoi(status[0]), 4) + Helper::getPaddedNumber(std::stoi(status[1]), 6) + Helper::getPaddedNumber(std::stoi(status[2]), 6);
+	msg += Helper::getPaddedNumber(std::stoi(status[0]), 4);
+	if (std::stoi(status[0]))
+	{
+		msg += Helper::getPaddedNumber(std::stoi(status[1]), 6) + Helper::getPaddedNumber(std::stoi(status[2]), 6);
 	
-	//converts the time(float) to the format of the sent message
-	if (status[3][1] == '.')
-	{
-		std::cout << std::string(1, status[3].at(0));
-		msg += "0" + std::string(1, status[3].at(0));
-		msg += status[3].size() == 3 ? std::string(1, status[3].at(2)) + "0" : std::string(status[3].substr(2, 2));
+		//converts the time(float) to the format of the sent message
+		if (status[3][1] == '.')
+		{
+			std::cout << std::string(1, status[3].at(0));
+			msg += "0" + std::string(1, status[3].at(0));
+			msg += status[3].size() == 3 ? std::string(1, status[3].at(2)) + "0" : std::string(status[3].substr(2, 2));
+		}
+		else
+		{
+			msg += std::string(status[3].substr(0, 2));
+			msg += status[3].size() == 4 ? std::string(1, status[3].at(3)) + "0" : std::string(status[3].substr(3, 2));
+		}
 	}
-	else
-	{
-		msg += std::string(status[3].substr(0, 2));
-		msg += status[3].size() == 4 ? std::string(1, status[3].at(3)) + "0" : std::string(status[3].substr(3, 2));
-	}
-
 	getUserBySocket(message->getSock())->send(msg);
 }
 

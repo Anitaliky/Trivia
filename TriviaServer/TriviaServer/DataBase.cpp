@@ -31,13 +31,13 @@ bool DataBase::addNewUser(std::string username, std::string password, std::strin
 	std::stringstream s;
 	auto it = _results.find("username");
 	int usersAmmount = it == _results.end() ? 0 : it->second.size();
-	s << "insert into t_users values('" << username << "','" << password << "','" << email << "');";
+	s << "insert into t_users(username,password,email) values('" << username << "','" << password << "','" << email << "');";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 
 	s << "select username from t_users where username='" << username << "';";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 	it = _results.find("username");
-	return it != _results.end() ? it->second.size() == usersAmmount + 1 : false;
+	return it->second.size() == usersAmmount + 1;
 }
 
 bool DataBase::isUserAndPassMatch(std::string username, std::string password)
@@ -46,7 +46,7 @@ bool DataBase::isUserAndPassMatch(std::string username, std::string password)
 	s << "select password from t_users where username='" << username << "';";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 	auto it = _results.find("password");
-	return it->second[it->second.size() - 1] == password;
+	return it != _results.end() ? (it->second[it->second.size() - 1] == password) : false;
 }
 
 std::vector<Question*> DataBase::initQuestions(int questionsNo)
@@ -83,31 +83,32 @@ std::map<std::string, std::string> DataBase::getBestScores()
 
 std::vector<std::string> DataBase::getPersonalStatus(std::string username)
 {
-	std::vector<std::string> ret;
 	//get number of games
 	std::stringstream s;
 	s << "select count(*) from(select * from t_players_answers where username='" << username << "' group by game_id);";
 	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
-	//get number of right answers
-	s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=1;";
-	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
+	if (std::stoi(_personalStatus[0]))
+	{
+		//get number of right answers
+		s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=1;";
+		send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
-	//get number of wrong answers
-	s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=0;";
-	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
+		//get number of wrong answers
+		s << "select count(*) from t_players_answers where username='" << username << "' and is_correct=0;";
+		send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
 
-	//get average time for answers
-	s << "select avg(answer_time) from t_players_answers where username='" << username << "';";
-	send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
-
+		//get average time for answers
+		s << "select avg(answer_time) from t_players_answers where username='" << username << "';";
+		send_check(CallbackType::PERSONAL_STATUS, _db, s, _zErrMsg);
+	}
 	return _personalStatus;
 }
 
 int DataBase::insertNewGame()
 {
 	std::stringstream s;
-	s << "insert into t_games(status,start_time,end_time) values(0,'NOW',NULL);"; //DOESN'T INSERT
+	s << "insert into t_games(status,start_time,end_time) values(0,'NOW',NULL);";
 	send_check(CallbackType::COUNT, _db, s, _zErrMsg);
 
 	s << "select game_id from t_games;";

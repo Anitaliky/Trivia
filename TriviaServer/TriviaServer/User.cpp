@@ -4,6 +4,8 @@ User::User(std::string username, SOCKET sock)
 {
 	_username = username;
 	_sock = sock;
+	_currRoom = nullptr;
+	_currGame = nullptr;
 }
 
 void User::send(std::string message)
@@ -35,6 +37,7 @@ Game* User::getGame()
 void User::setGame(Game* currGame)
 {
 	_currGame = currGame;
+	_currRoom = nullptr;
 }
 
 void User::setUsername(std::string username)
@@ -88,7 +91,6 @@ int User::closeRoom()
 		_currRoom = nullptr;
 	}
 	return id;
-
 }
 
 bool User::leaveGame()
