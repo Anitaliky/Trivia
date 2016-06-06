@@ -305,7 +305,6 @@ bool TriviaServer::handleCloseRoom(RecievedMessage* message)
 			if (roomID != INVALID_ID)
 			{
 				_roomsList.erase(roomID);
-				delete room;
 				return true;
 			}
 		}

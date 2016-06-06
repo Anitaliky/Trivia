@@ -37,7 +37,6 @@ Game* User::getGame()
 void User::setGame(Game* currGame)
 {
 	_currGame = currGame;
-	_currRoom = nullptr;
 }
 
 void User::setUsername(std::string username)
