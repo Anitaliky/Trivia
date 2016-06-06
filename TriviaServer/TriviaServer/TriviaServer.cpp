@@ -1,5 +1,4 @@
 #include "TriviaServer.h"
-#include "SafeQueue.h"
 
 TriviaServer::TriviaServer() : _db()
 {
@@ -12,6 +11,12 @@ TriviaServer::TriviaServer() : _db()
 
 TriviaServer::~TriviaServer()
 {
+	for (auto it = _roomsList.begin(); it != _roomsList.end(); ++it)
+		delete it->second;
+	_roomsList.clear();
+	for (auto it = _connectedUsers.begin(); it != _connectedUsers.end(); ++it)
+		delete it->second;
+	_connectedUsers.clear();
 	if (closesocket(_socket) == SOCKET_ERROR)
 		throw std::exception("close socket failed");
 }
@@ -169,6 +174,7 @@ void TriviaServer::handleRecievedMessages()
 			safeDeleteUser(message);
 			break;
 		}
+		delete message;
 	}
 }
 

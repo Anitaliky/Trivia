@@ -23,10 +23,9 @@ Game::Game(const std::vector<User*>& players, int questionsNo, DataBase& db) : _
 
 Game::~Game()
 {
-	for (int i = _questions.size() - 1; i >= 0 ; i--)
-	{
-		_questions.pop_back();
-	}
+	for (int i = 0; i < _questions.size(); i++)
+		delete _questions[i];
+	_questions.clear();
 	for (int i = _players.size() - 1; i >= 0 ; i--)
 		_players.pop_back();
 }
@@ -48,6 +47,7 @@ void Game::handleFinishGame()
 			{
 				std::cout << ex.what() << std::endl;
 			}
+			_players[i]->setGame(nullptr);
 		}
 	}
 }

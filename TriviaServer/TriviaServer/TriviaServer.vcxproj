@@ -84,6 +84,7 @@
     <ClInclude Include="Question.h" />
     <ClInclude Include="RecievedMessage.h" />
     <ClInclude Include="Room.h" />
+    <ClInclude Include="SafeQueue.h" />
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="TriviaServer.h" />
     <ClInclude Include="User.h" />
