@@ -88,7 +88,14 @@ void TriviaServer::clientHandler(SOCKET client_socket)
 
 Room* TriviaServer::getRoomById(int id)
 {
-	return _roomsList.at(id);
+	try
+	{
+		return _roomsList.at(id);
+	}
+	catch (std::exception& ex)
+	{
+		return nullptr;
+	}
 }
 
 User* TriviaServer::getUserByName(std::string name)
@@ -109,7 +116,8 @@ void TriviaServer::safeDeleteUser(RecievedMessage* message)
 	try
 	{
 		handleSignout(message);
-		_connectedUsers.erase(_connectedUsers.find(message->getSock()));
+		if (_connectedUsers.find(message->getSock()) != _connectedUsers.end())
+			_connectedUsers.erase(_connectedUsers.find(message->getSock()));
 		closesocket(message->getSock());
 	}
 	catch (std::exception& ex)
@@ -124,7 +132,7 @@ void TriviaServer::handleRecievedMessages()
 	while (true)
 	{
 		RecievedMessage* message = _queRcvMessages.dequeue();
-		std::cout << "message code is:" << message->getMessageCode() << std::endl;
+		std::cout << "message code is:" << message->getMessageCode() << " from: " << message->getSock() << std::endl;
 		switch (message->getMessageCode())
 		{
 		case (int)ClientMessageCode::SIGN_IN:
@@ -361,9 +369,11 @@ void TriviaServer::handleGetUsersInRoom(RecievedMessage* message)
 			Room* room = getRoomById(std::stoi(roomID));
 			if (room)
 				user->send(room->getUsersListMessage());
+			else
+				user->send(std::to_string((int)ServerMessageCode::USERS_ROOM_LIST) + "0");
 		}
 		else
-			user->send(/*fail message*/"");
+			user->send(std::to_string((int)ServerMessageCode::USERS_ROOM_LIST) + "0");
 	}
 }
 

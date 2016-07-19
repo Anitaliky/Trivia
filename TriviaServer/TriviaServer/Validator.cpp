@@ -12,7 +12,13 @@ bool Validator::isPasswordValid(std::string password)
 
 bool Validator::isUsernameValid(std::string username)
 {
-	return (username != "" &&
-		(username.at(0) >= 'a' && username.at(0) <= 'z') || (username.at(0) >= 'A' && username.at(0) <= 'Z') &&
-		username.find_first_of(' ') == std::string::npos);
+	if (username != "")
+		if ((username.at(0) >= 'a' && username.at(0) <= 'z') || (username.at(0) >= 'A' && username.at(0) <= 'Z'))
+		{
+			for (int i = 0; i < username.length(); i++)
+				if (username[i] == ' ')
+					return false;
+			return true;
+		}
+	return false;
 }
