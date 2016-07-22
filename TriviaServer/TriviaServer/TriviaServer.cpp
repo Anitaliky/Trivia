@@ -253,23 +253,24 @@ void TriviaServer::handleLeaveGame(RecievedMessage* message)
 
 void TriviaServer::handleStartGame(RecievedMessage* message)
 {
-	User* user = getUserBySocket(message->getSock());
+	User* admin = getUserBySocket(message->getSock());
 	std::vector<User*> players;
 	for (auto it = _connectedUsers.begin(); it != _connectedUsers.end(); ++it)
-		players.push_back(it->second);
+		if (it->second->getRoom() == admin->getRoom())
+			players.push_back(it->second);
 
 	try
 	{
-		Game* game = new Game(players, user->getRoom()->getQuestionsNo(), _db);
-		_roomsList.erase(user->getRoom()->getId());
-		user->setCurrRoom(nullptr);
-		_connectedUsers.at(message->getSock()) = user;
+		Game* game = new Game(players, admin->getRoom()->getQuestionsNo(), _db);
+		_roomsList.erase(admin->getRoom()->getId());
+		admin->setCurrRoom(nullptr);
+		_connectedUsers.at(message->getSock()) = admin;
 		game->sendFirstQuestion();
 	}
 	catch (std::exception& ex)
 	{
 		std::cout << ex.what() << std::endl;
-		user->send(std::to_string((int)ServerMessageCode::QUESTION) + "0");
+		admin->send(std::to_string((int)ServerMessageCode::QUESTION) + "0");
 	}
 }
 
